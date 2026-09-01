@@ -1,0 +1,9 @@
+# Ignore all Terraform plugins and state files anywhere in the project
+**/.terraform/*
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Ignore Node.js packages
+node_modules/

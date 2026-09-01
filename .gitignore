@@ -1,0 +1,26 @@
+# -----------------------------
+# Terraform Ignore Rules
+# -----------------------------
+# Ignore local Terraform directories
+**/.terraform/
+**/.terraform.*
+
+# Ignore Terraform state files (CRITICAL SECURITY!)
+*.tfstate
+*.tfstate.*
+
+# Ignore crash logs
+crash.log
+crash.*.log
+
+# Ignore variable files with real passwords/keys
+*.tfvars
+# (But DO NOT ignore our example file)
+!terraform.tfvars.example
+
+# -----------------------------
+# Node.js / App Ignore Rules
+# -----------------------------
+node_modules/
+npm-debug.log
+.env
