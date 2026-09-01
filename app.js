@@ -2,27 +2,34 @@ const express = require('express');
 const { Pool } = require('pg');
 const app = express();
 
-// The environment variables will be injected via your CI/CD or ECS task definition
+app.use(express.json());
+
+// Database connection pool setup
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
 });
 
-// Health check endpoint for your AWS Load Balancer
-app.get('/health', (req, res) => res.status(200).send('OK'));
+// Health check endpoint returning JSON to match test suite
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
 
-// Database connection test endpoint
+// API data endpoint querying PostgreSQL
 app.get('/api/data', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
-    res.status(200).json(result.rows);
+    res.status(200).json({ success: true, timestamp: result.rows[0] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Database connection error', details: err.message });
   }
 });
 
+// Conditional listener: only listen if run directly, export for testing
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+module.exports = app;
