@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1'
-        ECR_CREDENTIALS_ID = 'aws-credentials' // Name of your credentials ID stored in Jenkins
+        ECR_CREDENTIALS_ID = 'aws-credentials'
         ECR_REPOSITORY = '8byte-app-repo'
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
@@ -15,34 +15,23 @@ pipeline {
             }
         }
 
-        stage('Authenticate & Login to ECR') {
+        stage('Build and Push to ECR') {
             steps {
                 script {
-                    // Pulls AWS credentials from Jenkins credential manager
                     withAWS(region: env.AWS_REGION, credentials: env.ECR_CREDENTIALS_ID) {
-                        sh "aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin $(aws ecr describe-repositories --repository-names ${env.ECR_REPOSITORY} --query 'repositories[0].repositoryUri' --output text | cut -d'/' -f1)"
+                        
+                        // 1. Fetch ECR Repository URI safely using single quotes
+                        def ecrUri = sh(script: 'aws ecr describe-repositories --repository-names ${ECR_REPOSITORY} --query "repositories[0].repositoryUri" --output text', returnStdout: true).trim()
+                        
+                        // 2. Login to Amazon ECR
+                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ecrUri}"
+
+                        // 3. Build and Push Docker image
+                        sh "docker build -t ${ecrUri}:${IMAGE_TAG} ."
+                        sh "docker push ${ecrUri}:${IMAGE_TAG}"
+                        sh "docker tag ${ecrUri}:${IMAGE_TAG} ${ecrUri}:latest"
+                        sh "docker push ${ecrUri}:latest"
                     }
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    appRepoUri = sh(script: "aws ecr describe-repositories --repository-names ${env.ECR_REPOSITORY} --query 'repositories[0].repositoryUri' --output text", returnStdout: true).trim()
-                    
-                    app = docker.build("${appRepoUri}:${env.IMAGE_TAG}")
-                }
-            }
-        }
-
-        stage('Push to ECR') {
-            steps {
-                script {
-                    appRepoUri = sh(script: "aws ecr describe-repositories --repository-names ${env.ECR_REPOSITORY} --query 'repositories[0].repositoryUri' --output text", returnStdout: true).trim()
-                    
-                    app.push("${env.IMAGE_TAG}")
-                    app.push("latest")
                 }
             }
         }
