@@ -13,7 +13,7 @@ resource "aws_sns_topic" "alerts" {
 resource "aws_sns_topic_subscription" "email_alert" {
   topic_arn = aws_sns_topic.alerts.arn
   protocol  = "email"
-  endpoint  = "your-email@example.com" # Change this to your actual email address!
+  endpoint  = "nimfren@gmail.com"
 }
 
 # 3. High CPU Alarm (Triggers if CPU goes over 80%)
