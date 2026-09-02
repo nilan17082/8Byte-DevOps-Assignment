@@ -26,15 +26,18 @@ The infrastructure is provisioned using **Terraform** and follows AWS best pract
 
 ##  CI/CD Pipeline (Jenkins)
 
-Deployment automation is handled via a `Jenkinsfile` that executes the following functional stages sequentially upon a new push to the repository:
-1. **Checkout Code:** Pulls the latest source code from the GitHub repository.
-2. **Install Dependencies & Test:** Installs Node.js dependencies and executes integration tests against the API endpoints (`/health` and `/api/data`) using **Jest** and **Supertest** (with mocked DB bindings for isolated CI execution).
-3. **Build Docker Image:** Containerizes the application and dynamically retrieves the ECR repository URI via the AWS CLI.
-4. **Security Scan (Trivy):** Runs a vulnerability scan against the built container image checking for HIGH and CRITICAL security vulnerabilities.
-5. **Push to ECR:** Authenticates with AWS and pushes the container image (tagged with the build number and `latest`) to Amazon ECR.
-6. **Deploy to Staging (ECS):** Automatically forces a new deployment on the AWS ECS Fargate service to run the updated container version.
-7. **Notifications:** Post-actions configured to log and report pipeline success or failure statuses.
+Deployment automation is handled via a **branch-aware** `Jenkinsfile`. The pipeline enforces strict CI/CD gating based on Git events:
 
+- **On Pull Request Creation:**
+  1. **Checkout & Test:** Installs Node.js dependencies and executes integration tests against the API endpoints (`/health` and `/api/data`) using **Jest** and **Supertest** to prevent broken code from being merged.
+  
+- **On Merge to `main`:**
+  2. **Build Docker Image:** Containerizes the application and dynamically retrieves the ECR repository URI.
+  3. **Security Scan (Trivy):** Runs a vulnerability scan against the built container image checking for HIGH and CRITICAL vulnerabilities.
+  4. **Push to ECR:** Authenticates with AWS and pushes the container image (tagged with the build number and `latest`) to Amazon ECR.
+  5. **Deploy to Staging:** Automatically updates the AWS ECS Fargate staging service with the new image.
+  6. **Manual Approval Gate:** The pipeline safely halts, requiring manual human approval in the Jenkins UI before promoting the build to Production.
+  7. **Deploy to Production:** Upon approval, the image is promoted to the production environment.
 ##  Monitoring & Logging (CloudWatch)
 
 Centralized observability is configured directly via Terraform:
