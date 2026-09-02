@@ -9,11 +9,11 @@ resource "aws_sns_topic" "alerts" {
   name = "8byte-alerts-topic"
 }
 
-# (Optional but recommended) Subscribe your email to the alerts
+# 📝 FIX: Parameterized email subscription using variables.tf
 resource "aws_sns_topic_subscription" "email_alert" {
   topic_arn = aws_sns_topic.alerts.arn
   protocol  = "email"
-  endpoint  = "nimfren@gmail.com"
+  endpoint  = var.alert_email
 }
 
 # 3. High CPU Alarm (Triggers if CPU goes over 80%)

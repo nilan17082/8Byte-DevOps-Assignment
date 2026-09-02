@@ -89,12 +89,14 @@ resource "aws_ecs_task_definition" "app_task" {
   ])
 }
 
-# 5. ECS Service (Keeps the app running and connects it to the Load Balancer)
+# ==========================================
+# 5. Staging Environment Service
+# ==========================================
 resource "aws_ecs_service" "app_service" {
   name            = "8byte-app-service"
   cluster         = aws_ecs_cluster.app_cluster.id
   task_definition = aws_ecs_task_definition.app_task.arn
-  desired_count   = 2 # FIX: Run 2 instances for true High Availability
+  desired_count   = 1 # Staging only needs 1 container
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -110,11 +112,34 @@ resource "aws_ecs_service" "app_service" {
   }
 }
 
-# 📈 FIX: Target Tracking Autoscaling (Min 2, Max 4 based on CPU)
+# ==========================================
+# 6. Production Environment Service
+# ==========================================
+resource "aws_ecs_service" "prod_service" {
+  name            = "8byte-app-service-prod"
+  cluster         = aws_ecs_cluster.app_cluster.id
+  task_definition = aws_ecs_task_definition.app_task.arn
+  desired_count   = 2 # Production gets 2 instances for true High Availability
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.private_1.id, aws_subnet.private_2.id]
+    security_groups  = [aws_security_group.app_sg.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.prod_tg.arn # Points to Prod Target Group
+    container_name   = "8byte-app"
+    container_port   = var.app_port
+  }
+}
+
+# 📈 FIX: Target Tracking Autoscaling (Min 2, Max 4 based on CPU) - NOW ATTACHED TO PROD
 resource "aws_appautoscaling_target" "ecs_target" {
   max_capacity       = 4
   min_capacity       = 2
-  resource_id        = "service/${aws_ecs_cluster.app_cluster.name}/${aws_ecs_service.app_service.name}"
+  resource_id        = "service/${aws_ecs_cluster.app_cluster.name}/${aws_ecs_service.prod_service.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
 }

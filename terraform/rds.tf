@@ -24,12 +24,19 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = aws_db_subnet_group.default.name
   vpc_security_group_ids = [aws_security_group.db_sg.id] # Attached to the Database Security Guard
   
-  skip_final_snapshot    = true  # Makes it easy to delete later without getting stuck
   publicly_accessible    = false # Blocks the public internet from reaching it
 
-  # 💾 FIX 2: Satisfies the Part 4 Backup Strategy requirement
-  backup_retention_period = 7
-  backup_window           = "03:00-04:00"
+  # ==========================================
+  # 💾 FIX 2: Automated Backup & Maintenance Strategy
+  # ==========================================
+  # Satisfies the Part 4 Backup Strategy requirement with explicit policies
+  backup_retention_period = 7                     # Retain automated backups for 7 days
+  backup_window           = "03:00-04:00"         # Daily backup window (UTC)
+  maintenance_window      = "Mon:04:00-Mon:05:00" # Weekly maintenance window (UTC)
+  
+  # For a production environment, this would be set to 'false' with a 'final_snapshot_identifier'.
+  # It is set to 'true' here strictly to allow clean teardown of the assignment environment.
+  skip_final_snapshot     = true 
 
   tags = {
     Name = "8byte-rds-postgres"

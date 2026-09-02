@@ -21,3 +21,12 @@ variable "app_port" {
   type        = number
   default     = 3000
 }
+
+# ==========================================
+# 📧 Alerting Variable
+# ==========================================
+variable "alert_email" {
+  description = "The email address to receive SNS pipeline and infrastructure alerts"
+  type        = string
+  default     = "admin@example.com" # Fallback default to prevent apply errors
+}

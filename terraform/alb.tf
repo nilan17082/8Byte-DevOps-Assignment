@@ -46,10 +46,10 @@ resource "aws_lb" "app_alb" {
   }
 }
 
-# 4. Target Group (The list of apps the receptionist is allowed to send people to)
+# 4. Staging Target Group (The existing group for your Staging environment)
 resource "aws_lb_target_group" "app_tg" {
   name        = "8byte-app-tg"
-  port        = var.app_port # FIX: Uses your variables.tf file
+  port        = var.app_port 
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
@@ -61,10 +61,37 @@ resource "aws_lb_target_group" "app_tg" {
   }
 }
 
-# 5. The Listener (Listens for internet traffic on port 80 and forwards it to the Target Group)
+# 4b. Production Target Group (The new group for your Production environment)
+resource "aws_lb_target_group" "prod_tg" {
+  name        = "8byte-prod-tg"
+  port        = var.app_port 
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    path                = "/health" 
+    healthy_threshold   = 2
+    unhealthy_threshold = 10
+  }
+}
+
+# 5. Production Listener (Port 80 -> Production Target Group)
 resource "aws_lb_listener" "front_end" {
   load_balancer_arn = aws_lb.app_alb.arn
   port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.prod_tg.arn
+  }
+}
+
+# 6. Staging Listener (Port 8080 -> Staging Target Group)
+resource "aws_lb_listener" "staging_front_end" {
+  load_balancer_arn = aws_lb.app_alb.arn
+  port              = "8080"
   protocol          = "HTTP"
 
   default_action {
