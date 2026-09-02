@@ -22,6 +22,7 @@ The infrastructure is provisioned using **Terraform** and follows AWS best pract
 - **Serverless Compute (Fargate):** Utilizing ECS Fargate avoids the idle cost of keeping dedicated EC2 virtual machines running 24/7.
 - **Right-Sized Resources:** Deployed standard lightweight resources (`db.t3.micro` for the database and minimal Fargate task sizes) optimized for assignment execution without over-provisioning.
 - **Log Retention Policy:** CloudWatch log groups enforce a strict 7-day retention policy to prevent runaway storage costs over time.
+- **Scope Trade-offs:** HTTPS/Multi-AZ configurations were omitted to keep infrastructure costs minimal for this assignment; I would add both for a production workload.
 
 ##  CI/CD Pipeline (Jenkins)
 
