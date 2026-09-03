@@ -1,16 +1,31 @@
-FROM node:22-alpine
+# Stage 1: Build Stage (Includes Node & npm)
+FROM node:22-alpine AS builder
 
-# Update Alpine packages
-RUN apk update && apk upgrade --no-cache
+WORKDIR /app
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm install --omit=dev
+
+# Copy application source code
+COPY . .
+
+# Stage 2: Production Stage (Lean, No npm)
+FROM alpine:3.21
+
+# Install only the Node.js runtime (no npm)
+RUN apk add --no-cache nodejs
 
 WORKDIR /app
 
-COPY package*.json ./
+# Copy the app and installed dependencies from the builder stage
+COPY --from=builder /app ./
 
-RUN npm install --omit=dev
-
-COPY . .
+# Create a non-root user for better security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# Run the app directly with node, bypassing npm entirely
+CMD ["node", "app.js"]
