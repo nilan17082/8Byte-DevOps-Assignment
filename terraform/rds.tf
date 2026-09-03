@@ -4,7 +4,7 @@ resource "aws_db_subnet_group" "default" {
   subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
 
   tags = {
-    Name = "8byte-db-subnet-group"
+    Name ="8byte-db-subnet-group"
   }
 }
 
