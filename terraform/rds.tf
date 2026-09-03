@@ -1,6 +1,6 @@
 # 1. Database Subnet Group (Tells AWS to put the DB in our private network)
 resource "aws_db_subnet_group" "default" {
-  name       = "8byte-db-subnet-group"
+  name       ="8byte-db-subnet-group"
   subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
 
   tags = {
@@ -18,7 +18,7 @@ resource "aws_db_instance" "postgres" {
   db_name                = "webappdb"
   username               = "dbadmin"
   
-  # 🔐 FIX 1: Uses the randomly generated password from Secrets Manager
+  # FIX 1: Uses the randomly generated password from Secrets Manager
   password               = random_password.db.result 
   
   db_subnet_group_name   = aws_db_subnet_group.default.name
@@ -27,7 +27,7 @@ resource "aws_db_instance" "postgres" {
   publicly_accessible    = false # Blocks the public internet from reaching it
 
   # ==========================================
-  # 💾 FIX 2: Automated Backup & Maintenance Strategy
+  # FIX 2: Automated Backup & Maintenance Strategy
   # ==========================================
   # Satisfies the Part 4 Backup Strategy requirement with explicit policies
   backup_retention_period = 7                     # Retain automated backups for 7 days
