@@ -1,10 +1,10 @@
 # 1. Database Subnet Group (Tells AWS to put the DB in our private network)
 resource "aws_db_subnet_group" "default" {
-  name       ="8byte-db-subnet-group"
+  name       = "eightbyte-db-subnet-group"
   subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
 
   tags = {
-    Name ="8byte-db-subnet-group"
+    Name = "eightbyte-db-subnet-group"
   }
 }
 

@@ -10,8 +10,8 @@ resource "aws_iam_role" "ecs_execution_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })
@@ -57,11 +57,11 @@ resource "aws_ecs_task_definition" "app_task" {
 
   container_definitions = jsonencode([
     {
-      name      = "8byte-app"
-      image     = "nginx:latest" # Placeholder! Your CI/CD will update this.
-      essential = true
+      name         = "8byte-app"
+      image        = "nginx:latest" # Placeholder! Your CI/CD will update this.
+      essential    = true
       portMappings = [{ containerPort = var.app_port, hostPort = var.app_port }]
-      
+
       environment = [
         { name = "DB_HOST", value = aws_db_instance.postgres.address },
         { name = "DB_USER", value = aws_db_instance.postgres.username },

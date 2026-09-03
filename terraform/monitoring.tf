@@ -27,7 +27,7 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu_alarm" {
   statistic           = "Average"
   threshold           = "80"
   alarm_description   = "This metric monitors ECS CPU utilization"
-  
+
   dimensions = {
     ClusterName = aws_ecs_cluster.app_cluster.name
     ServiceName = aws_ecs_service.app_service.name
@@ -52,9 +52,9 @@ resource "aws_cloudwatch_dashboard" "main_dashboard" {
             ["AWS/ECS", "CPUUtilization", "ClusterName", aws_ecs_cluster.app_cluster.name],
             [".", "MemoryUtilization", ".", "."]
           ]
-          view    = "timeSeries"
-          region  = var.aws_region
-          title   = "ECS CPU & Memory"
+          view   = "timeSeries"
+          region = var.aws_region
+          title  = "ECS CPU & Memory"
         }
       },
       {
@@ -68,9 +68,9 @@ resource "aws_cloudwatch_dashboard" "main_dashboard" {
             ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", aws_lb.app_alb.arn_suffix],
             [".", "TargetResponseTime", "TargetGroup", aws_lb_target_group.app_tg.arn_suffix, "LoadBalancer", aws_lb.app_alb.arn_suffix]
           ]
-          view    = "timeSeries"
-          region  = var.aws_region
-          title   = "Request Count & Latency"
+          view   = "timeSeries"
+          region = var.aws_region
+          title  = "Request Count & Latency"
         }
       },
       {
@@ -84,9 +84,9 @@ resource "aws_cloudwatch_dashboard" "main_dashboard" {
             ["AWS/ApplicationELB", "HTTPCode_Target_4XX_Count", "TargetGroup", aws_lb_target_group.app_tg.arn_suffix, "LoadBalancer", aws_lb.app_alb.arn_suffix],
             [".", "HTTPCode_Target_5XX_Count", ".", ".", ".", "."]
           ]
-          view    = "timeSeries"
-          region  = var.aws_region
-          title   = "Error Rates (4XX / 5XX)"
+          view   = "timeSeries"
+          region = var.aws_region
+          title  = "Error Rates (4XX / 5XX)"
         }
       }
     ]
@@ -109,9 +109,9 @@ resource "aws_cloudwatch_dashboard" "db_dashboard" {
             ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.postgres.identifier],
             [".", "DatabaseConnections", ".", "."]
           ]
-          view    = "timeSeries"
-          region  = var.aws_region
-          title   = "RDS Database Metrics"
+          view   = "timeSeries"
+          region = var.aws_region
+          title  = "RDS Database Metrics"
         }
       }
     ]

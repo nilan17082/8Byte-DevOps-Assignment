@@ -49,13 +49,13 @@ resource "aws_lb" "app_alb" {
 # 4. Staging Target Group (The existing group for your Staging environment)
 resource "aws_lb_target_group" "app_tg" {
   name        = "8byte-app-tg"
-  port        = var.app_port 
+  port        = var.app_port
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
   health_check {
-    path                = "/health" 
+    path                = "/health"
     healthy_threshold   = 2
     unhealthy_threshold = 10
   }
@@ -64,13 +64,13 @@ resource "aws_lb_target_group" "app_tg" {
 # 4b. Production Target Group (The new group for your Production environment)
 resource "aws_lb_target_group" "prod_tg" {
   name        = "8byte-prod-tg"
-  port        = var.app_port 
+  port        = var.app_port
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
   health_check {
-    path                = "/health" 
+    path                = "/health"
     healthy_threshold   = 2
     unhealthy_threshold = 10
   }
