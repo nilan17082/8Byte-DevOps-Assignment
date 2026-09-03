@@ -9,7 +9,7 @@ pipeline {
         AWS_REGION = 'us-east-1'
 
         // Jenkins credential ID
-        ECR_CREDENTIALS_ID = 'aws-credentials'
+        ECR_CREDENTIALS_ID = 'aws-jenkins'
 
         // ECR
         ECR_REPOSITORY = '8byte-app-repo'
