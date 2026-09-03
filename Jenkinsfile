@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    
+    tools {
+        nodejs 'node' // (Make sure this matches the name in Jenkins -> Global Tool Configuration)
+    }
 
     environment {
         AWS_REGION = 'us-east-1'
@@ -89,7 +93,7 @@ pipeline {
         }
     }
 
-   post {
+    post {
         success {
             echo 'Pipeline completed successfully!'
         }
