@@ -14,9 +14,10 @@ pipeline {
         // ECR
         ECR_REPOSITORY = '8byte-app-repo'
 
-        // ECS
-        ECS_CLUSTER = '8byte-cluster'
+        // ECS (Updated to match your AWS console exactly)
+        ECS_CLUSTER = '8byte-app-cluster'
         ECS_SERVICE_STAGING = '8byte-app-service'
+        ECS_SERVICE_PROD = '8byte-app-service-prod'
 
         // Docker image tag
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -309,8 +310,8 @@ pipeline {
                  *
                  *     sh """
                  *         aws ecs update-service \
-                 *         --cluster 8byte-cluster-prod \
-                 *         --service 8byte-app-service-prod \
+                 *         --cluster ${env.ECS_CLUSTER} \
+                 *         --service ${env.ECS_SERVICE_PROD} \
                  *         --force-new-deployment \
                  *         --region ${env.AWS_REGION}
                  *     """
