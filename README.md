@@ -2,7 +2,10 @@
 
 This repository contains the complete infrastructure, application, and CI/CD code for a scalable, secure, and monitored cloud deployment on AWS.
 
-##  Architecture Overview
+##  Architecture Overview 
+## Architecture Diagram
+
+![Architecture Diagram](./architecture-diagram.svg)
 
 The infrastructure is provisioned using **Terraform** and follows AWS best practices for high availability and security:
 - **Networking (VPC):** Custom VPC with public subnets (for the Load Balancer) and private subnets (for the App and Database).
