@@ -9,6 +9,14 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Root endpoint for a friendly welcome message during the demo
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "8Byte DevOps API is running perfectly!"
+  });
+});
+
 // Health check endpoint returning JSON to match test suite
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
