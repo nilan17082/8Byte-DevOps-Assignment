@@ -1,8 +1,9 @@
-FROM node:20-alpine
+FROM node:22-alpine
+
+# Update Alpine packages
+RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
-
-RUN apk update && apk upgrade --no-cache
 
 COPY package*.json ./
 
