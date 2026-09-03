@@ -33,9 +33,7 @@ pipeline {
 
         stage('Build, Scan & Push to ECR') {
             // This and all subsequent stages ONLY run when merged to main
-            when {
-                branch 'main'
-            }
+            
             steps {
                 script {
                     withAWS(region: env.AWS_REGION, credentials: env.ECR_CREDENTIALS_ID) {
@@ -59,9 +57,7 @@ pipeline {
         }
 
         stage('Deploy to Staging (ECS)') {
-            when {
-                branch 'main'
-            }
+           
             steps {
                 script {
                     withAWS(region: env.AWS_REGION, credentials: env.ECR_CREDENTIALS_ID) {
@@ -72,9 +68,7 @@ pipeline {
         }
 
         stage('Approval Gate: Production') {
-            when {
-                branch 'main'
-            }
+           
             steps {
                 // This pauses the pipeline indefinitely until a user clicks "Proceed" in the Jenkins UI
                 input message: 'Staging deployment successful. Promote to Production?', ok: 'Deploy to Prod'
@@ -82,9 +76,7 @@ pipeline {
         }
 
         stage('Deploy to Production') {
-            when {
-                branch 'main'
-            }
+            
             steps {
                 echo "Deploying to Production cluster... (Placeholder for Prod ECS service update)"
                 // If you had a prod cluster provisioned, the command would go here:
