@@ -1,62 +1,62 @@
 pipeline {
     agent any
-
+ 
     tools {
         nodejs 'node18'
     }
-
+ 
     environment {
         AWS_REGION = 'us-east-1'
-
+ 
         // Jenkins credential ID
         ECR_CREDENTIALS_ID = 'aws-jenkins'
-
+ 
         // ECR
         ECR_REPOSITORY = '8byte-app-repo'
-
+ 
         // ECS (Updated to match your AWS console exactly)
         ECS_CLUSTER = '8byte-app-cluster'
         ECS_SERVICE_STAGING = '8byte-app-service'
         ECS_SERVICE_PROD = '8byte-app-service-prod'
-
+ 
         // Docker image tag
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
-
+ 
     stages {
-
+ 
         // =========================================================
         // 1. CHECKOUT CODE
         // =========================================================
-
+ 
         stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
-
-
+ 
+ 
         // =========================================================
         // 2. INSTALL DEPENDENCIES & TEST
         // =========================================================
-
+ 
         stage('Install Dependencies & Test') {
             steps {
                 sh '''
                     echo "Installing dependencies..."
                     npm install
-
+ 
                     echo "Running tests..."
                     npm test
                 '''
             }
         }
-
-
+ 
+ 
         // =========================================================
         // 3. TEST AWS CREDENTIALS
         // =========================================================
-
+ 
         stage('Test AWS Credentials') {
             when {
                 expression {
@@ -66,34 +66,34 @@ pipeline {
                            env.GIT_COMMIT != null
                 }
             }
-
+ 
             steps {
                 script {
-
+ 
                     echo "Testing AWS credentials..."
-
+ 
                     withAWS(
                         region: env.AWS_REGION,
                         credentials: env.ECR_CREDENTIALS_ID
                     ) {
-
+ 
                         sh '''
                             echo "Checking AWS identity..."
-
+ 
                             aws sts get-caller-identity
-
+ 
                             echo "AWS authentication successful!"
                         '''
                     }
                 }
             }
         }
-
-
+ 
+ 
         // =========================================================
         // 4. BUILD, SCAN & PUSH TO ECR
         // =========================================================
-
+ 
         stage('Build, Scan & Push to ECR') {
             when {
                 expression {
@@ -103,21 +103,21 @@ pipeline {
                            env.GIT_COMMIT != null
                 }
             }
-
+ 
             steps {
                 script {
-
+ 
                     withAWS(
                         region: env.AWS_REGION,
                         credentials: env.ECR_CREDENTIALS_ID
                     ) {
-
+ 
                         // -------------------------------------------------
                         // Get ECR Repository URI
                         // -------------------------------------------------
-
+ 
                         echo "Finding ECR repository..."
-
+ 
                         def ecrUri = sh(
                             script: """
                                 aws ecr describe-repositories \
@@ -127,45 +127,45 @@ pipeline {
                             """,
                             returnStdout: true
                         ).trim()
-
+ 
                         env.ECR_URI = ecrUri
-
+ 
                         echo "ECR URI: ${env.ECR_URI}"
                         echo "Image Tag: ${env.IMAGE_TAG}"
-
-
+ 
+ 
                         // -------------------------------------------------
                         // Docker Build
                         // -------------------------------------------------
-
+ 
                         echo "Building Docker image..."
-
+ 
                         sh """
                             docker build \
                             -t ${env.ECR_URI}:${env.IMAGE_TAG} .
                         """
-
-
+ 
+ 
                         // -------------------------------------------------
                         // Trivy Security Scan
                         // -------------------------------------------------
-
+ 
                         echo "Scanning Docker image with Trivy..."
-
+ 
                         sh """
                             trivy image \
                             --exit-code 1 \
                             --severity HIGH,CRITICAL \
                             ${env.ECR_URI}:${env.IMAGE_TAG}
                         """
-
-
+ 
+ 
                         // -------------------------------------------------
                         // Login to ECR
                         // -------------------------------------------------
-
+ 
                         echo "Logging into Amazon ECR..."
-
+ 
                         sh """
                             aws ecr get-login-password \
                             --region ${env.AWS_REGION} | \
@@ -173,53 +173,53 @@ pipeline {
                             --username AWS \
                             --password-stdin ${env.ECR_URI}
                         """
-
-
+ 
+ 
                         // -------------------------------------------------
                         // Push Versioned Image
                         // -------------------------------------------------
-
+ 
                         echo "Pushing image with build tag..."
-
+ 
                         sh """
                             docker push ${env.ECR_URI}:${env.IMAGE_TAG}
                         """
-
-
+ 
+ 
                         // -------------------------------------------------
                         // Tag Latest
                         // -------------------------------------------------
-
+ 
                         echo "Creating latest tag..."
-
+ 
                         sh """
                             docker tag \
                             ${env.ECR_URI}:${env.IMAGE_TAG} \
                             ${env.ECR_URI}:latest
                         """
-
-
+ 
+ 
                         // -------------------------------------------------
                         // Push Latest
                         // -------------------------------------------------
-
+ 
                         echo "Pushing latest image..."
-
+ 
                         sh """
                             docker push ${env.ECR_URI}:latest
                         """
-
+ 
                         echo "Docker image successfully pushed to ECR!"
                     }
                 }
             }
         }
-
-
+ 
+ 
         // =========================================================
         // 5. DEPLOY TO STAGING ECS
         // =========================================================
-
+ 
         stage('Deploy to Staging (ECS)') {
             when {
                 expression {
@@ -229,36 +229,83 @@ pipeline {
                            env.GIT_COMMIT != null
                 }
             }
-
+ 
             steps {
                 script {
-
+ 
                     withAWS(
                         region: env.AWS_REGION,
                         credentials: env.ECR_CREDENTIALS_ID
                     ) {
-
+ 
+                        echo "Registering new task definition revision with updated image..."
+ 
+                        // Get the current task definition family attached to the staging service
+                        def currentTaskDefArn = sh(
+                            script: """
+                                aws ecs describe-services \
+                                --cluster ${env.ECS_CLUSTER} \
+                                --services ${env.ECS_SERVICE_STAGING} \
+                                --region ${env.AWS_REGION} \
+                                --query 'services[0].taskDefinition' \
+                                --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+ 
+                        echo "Current task definition: ${currentTaskDefArn}"
+ 
+                        // Pull the full task definition JSON, swap in the new image, strip fields
+                        // that ECS rejects when re-registering
+                        sh """
+                            aws ecs describe-task-definition \
+                            --task-definition ${currentTaskDefArn} \
+                            --region ${env.AWS_REGION} \
+                            --query 'taskDefinition' \
+                            > taskdef.json
+ 
+                            jq --arg IMAGE "${env.ECR_URI}:${env.IMAGE_TAG}" \
+                                '.containerDefinitions[0].image = \$IMAGE
+                                | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                                      .compatibilities, .registeredAt, .registeredBy)' \
+                                taskdef.json > new-taskdef.json
+                        """
+ 
+                        def newTaskDefArn = sh(
+                            script: """
+                                aws ecs register-task-definition \
+                                --cli-input-json file://new-taskdef.json \
+                                --region ${env.AWS_REGION} \
+                                --query 'taskDefinition.taskDefinitionArn' \
+                                --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+ 
+                        echo "Registered new task definition: ${newTaskDefArn}"
+ 
                         echo "Deploying application to ECS staging..."
-
+ 
                         sh """
                             aws ecs update-service \
                             --cluster ${env.ECS_CLUSTER} \
                             --service ${env.ECS_SERVICE_STAGING} \
+                            --task-definition ${newTaskDefArn} \
                             --force-new-deployment \
                             --region ${env.AWS_REGION}
                         """
-
+ 
                         echo "ECS staging deployment triggered successfully!"
                     }
                 }
             }
         }
-
-
+ 
+ 
         // =========================================================
         // 6. PRODUCTION APPROVAL
         // =========================================================
-
+ 
         stage('Approval Gate: Production') {
             when {
                 expression {
@@ -268,21 +315,21 @@ pipeline {
                            env.GIT_COMMIT != null
                 }
             }
-
+ 
             steps {
-
+ 
                 input(
                     message: 'Staging deployment successful. Promote to Production?',
                     ok: 'Deploy to Prod'
                 )
             }
         }
-
-
+ 
+ 
         // =========================================================
         // 7. DEPLOY TO PRODUCTION
         // =========================================================
-
+ 
         stage('Deploy to Production') {
             when {
                 expression {
@@ -292,11 +339,11 @@ pipeline {
                            env.GIT_COMMIT != null
                 }
             }
-
+ 
             steps {
-
+ 
                 echo "Deploying to Production..."
-
+ 
                 /*
                  * Production deployment placeholder.
                  *
@@ -317,52 +364,52 @@ pipeline {
                  *     """
                  * }
                  */
-
+ 
                 echo "Production deployment stage completed."
             }
         }
     }
-
-
+ 
+ 
     // =============================================================
     // POST ACTIONS
     // =============================================================
-
+ 
     post {
-
+ 
         // ---------------------------------------------------------
         // SUCCESS
         // ---------------------------------------------------------
-
+ 
         success {
             echo '=========================================='
             echo 'Pipeline completed successfully!'
             echo '=========================================='
         }
-
-
+ 
+ 
         // ---------------------------------------------------------
         // FAILURE
         // ---------------------------------------------------------
-
+ 
         failure {
-
+ 
             echo '=========================================='
             echo 'Pipeline failed!'
             echo 'Attempting AWS SNS notification...'
             echo '=========================================='
-
+ 
             script {
-
+ 
                 try {
-
+ 
                     withAWS(
                         region: env.AWS_REGION,
                         credentials: env.ECR_CREDENTIALS_ID
                     ) {
-
+ 
                         // Get AWS Account ID
-
+ 
                         def accountId = sh(
                             script: '''
                                 aws sts get-caller-identity \
@@ -371,19 +418,19 @@ pipeline {
                             ''',
                             returnStdout: true
                         ).trim()
-
-
+ 
+ 
                         // Construct SNS Topic ARN
-
+ 
                         def snsTopicArn =
                             "arn:aws:sns:${env.AWS_REGION}:${accountId}:8byte-alerts-topic"
-
-
+ 
+ 
                         echo "Sending failure notification to SNS..."
-
-
+ 
+ 
                         // Publish SNS notification
-
+ 
                         sh """
                             aws sns publish \
                             --topic-arn ${snsTopicArn} \
@@ -394,14 +441,14 @@ Build: ${env.BUILD_NUMBER}
 Please check the Jenkins console logs." \
                             --region ${env.AWS_REGION}
                         """
-
+ 
                         echo "SNS notification sent successfully."
                     }
-
+ 
                 } catch (Exception e) {
-
+ 
                     // Don't hide the original pipeline failure
-
+ 
                     echo "SNS notification failed."
                     echo "Reason: ${e.getMessage()}"
                 }
