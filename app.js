@@ -1,16 +1,20 @@
+const path = require('path');
 const express = require('express');
 const { Pool } = require('pg');
 const app = express();
 
 app.use(express.json());
 
+// Serve the landing page and any static assets from /public
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Database connection pool setup
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Root endpoint for a friendly welcome message during the demo
-app.get('/', (req, res) => {
+// Kept for anything (scripts, monitoring) that still expects a JSON root response
+app.get('/api/status', (req, res) => {
   res.status(200).json({
     status: "success",
     message: "8Byte DevOps API is running perfectly!"
